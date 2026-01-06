@@ -10,8 +10,7 @@ import requests
 import platform
 import socket
 
-# HAPUS IMPORT PYAUTOGUI DARI SINI AGAR UBUNTU TIDAK CRASH
-# import pyautogui (Dihapus)
+# NO PYAUTOGUI / NO SCREENSHOT
 
 try: sys.stdout.reconfigure(encoding='utf-8')
 except: pass
@@ -28,21 +27,21 @@ bot = telebot.TeleBot(TOKEN)
 
 TEXTS = {
     'en': {
-        'start': f"👋 **{SYSTEM_OS} RDP Controller**\n\nPaste **CRD Command** now.\n(From: remotedesktop.google.com/headless)",
+        'start': f"👋 **{SYSTEM_OS} RDP READY!**\n\nPaste **CRD Command** now.\n(From: remotedesktop.google.com/headless)",
         'cmd_received': "✅ Command OK.\nInput **PIN (6 Digits)**:",
         'pin_ok': "✅ PIN Saved.\n👉 **Select Duration (Hours):**",
-        'starting': "🚀 **Starting RDP...**\nWait for screenshot...",
-        'active_caption': "🖥️ **RDP ACTIVE!**\n\n📍 **Location:** {country} ({ip})\n⚙️ **Specs:** {cpu} Cores / {ram}GB RAM\n💻 **OS:** {os}\n\n**Resolution Tip:** Change manually in Windows Display Settings / Linux Display.",
+        'starting': "🚀 **Starting RDP...**\nPlease wait...",
+        'active_text': "🖥️ **RDP ACTIVE!**\n\n📍 **Location:** {country} ({ip})\n⚙️ **Specs:** {cpu} Cores / {ram}GB RAM\n💻 **OS:** {os}\n\nLogin via Chrome Remote Desktop app now.",
         'timeout': "🛑 Duration Limit Reached.",
         'max_limit': "⚠️ **Max Limit!** Cannot exceed 6 Hours.",
         'status_info': "📊 **System Status**\nCPU: {cpu}%\nRAM: {ram}%\nTime Left: {left}m"
     },
     'id': {
-        'start': f"👋 **Controller RDP {SYSTEM_OS}**\n\nPaste **Command CRD** sekarang.\n(Dari: remotedesktop.google.com/headless)",
+        'start': f"👋 **{SYSTEM_OS} RDP SIAP!**\n\nPaste **Command CRD** sekarang.\n(Dari: remotedesktop.google.com/headless)",
         'cmd_received': "✅ Command Diterima.\nMasukkan **PIN (6 Angka)**:",
         'pin_ok': "✅ PIN Disimpan.\n👉 **Pilih Durasi (Jam):**",
-        'starting': "🚀 **Menyalakan RDP...**\nTunggu screenshot...",
-        'active_caption': "🖥️ **RDP AKTIF!**\n\n📍 **Lokasi:** {country} ({ip})\n⚙️ **Spek:** {cpu} Core / {ram}GB RAM\n💻 **OS:** {os}\n\n💡 **Tips Resolusi:** Ubah manual di Display Settings (Windows) atau Display (Linux) setelah connect.",
+        'starting': "🚀 **Menyalakan RDP...**\nMohon tunggu...",
+        'active_text': "🖥️ **RDP AKTIF!**\n\n📍 **Lokasi:** {country} ({ip})\n⚙️ **Spek:** {cpu} Core / {ram}GB RAM\n💻 **OS:** {os}\n\nSilakan Login di aplikasi CRD sekarang.",
         'timeout': "🛑 Batas Waktu Habis.",
         'max_limit': "⚠️ **Batas Max!** Tidak bisa lebih dari 6 Jam.",
         'status_info': "📊 **Status System**\nCPU: {cpu}%\nRAM: {ram}%\nSisa Waktu: {left}m"
@@ -52,18 +51,16 @@ def t(key): return TEXTS.get(USER_LANG, TEXTS['en']).get(key, key)
 
 state = {"crd_cmd": None, "pin": None, "duration": 0, "start_time": None, "active": True}
 
-# --- MENU CONTROL ---
+# --- MENU CONTROL (NO SCREENSHOT) ---
 def get_control_menu():
     mk = InlineKeyboardMarkup(row_width=2)
     mk.add(
-        InlineKeyboardButton("📸 Screenshot", callback_data="screen"),
         InlineKeyboardButton("📊 Info", callback_data="info"),
         InlineKeyboardButton("➕ Extend 30m", callback_data="extend"),
         InlineKeyboardButton("💀 KILL RDP", callback_data="kill")
     )
     return mk
 
-# --- SYSTEM INFO HELPER ---
 def get_server_details():
     try:
         ip_data = requests.get("http://ip-api.com/json").json()
@@ -76,7 +73,7 @@ def get_server_details():
     except:
         return "Unknown", "Unknown", "Unknown", "Unknown", "Unknown"
 
-# --- POLLING & REGISTER ---
+# --- POLLING ---
 def register_session():
     try:
         if RUN_ID and WORKER_URL:
@@ -86,7 +83,13 @@ def register_session():
 
 def poll_cloudflare():
     register_session()
-    print("Relay Polling Started...")
+    print("Bot Started. Sending Greeting...")
+    # KIRIM PESAN PERTAMA: MINTA CRD
+    try:
+        bot.send_message(CHAT_ID, t('start')) 
+    except Exception as e:
+        print(f"Send Start Error: {e}")
+
     while state["active"]:
         try:
             headers = {"X-Bot-Secret": TOKEN}
@@ -108,7 +111,6 @@ def poll_cloudflare():
 def process_text(text):
     text = text.strip()
     
-    # FITUR BARU: command /panel untuk memanggil tombol yg tertimbun
     if text == "/panel" or text == "/menu":
         bot.send_message(CHAT_ID, "🎛️ **Control Panel:**", reply_markup=get_control_menu())
         return
@@ -149,9 +151,6 @@ def process_callback(data):
         else:
             state["duration"] += 30
             bot.send_message(CHAT_ID, "✅ +30 Mins", reply_markup=get_control_menu())
-    elif data == "screen": 
-        bot.send_message(CHAT_ID, "📸 Cekrek...")
-        send_screenshot(caption="📸 Manual Screenshot")
     elif data == "info":
         elapsed = (time.time() - state["start_time"]) / 60
         left = int(state["duration"] - elapsed)
@@ -181,9 +180,9 @@ def run_rdp_process():
         time.sleep(10)
         
         country, ip, cpu, ram, os_ver = get_server_details()
-        caption_text = t('active_caption').format(country=country, ip=ip, cpu=cpu, ram=ram, os=os_ver)
+        msg_text = t('active_text').format(country=country, ip=ip, cpu=cpu, ram=ram, os=os_ver)
         
-        send_screenshot(caption=caption_text, keyboard=get_control_menu())
+        bot.send_message(CHAT_ID, msg_text, reply_markup=get_control_menu())
         monitor_loop()
     except Exception as e:
         bot.send_message(CHAT_ID, f"Error: {e}")
@@ -198,24 +197,6 @@ def monitor_loop():
             else: os.system("sudo shutdown now")
             break
         time.sleep(30)
-
-def send_screenshot(caption=None, keyboard=None):
-    # LAZY IMPORT AGAR TIDAK CRASH DI UBUNTU SERVER
-    try:
-        import pyautogui
-        f = "s.png"
-        pyautogui.screenshot(f)
-        with open(f, "rb") as p: 
-            if caption:
-                bot.send_photo(CHAT_ID, p, caption=caption, reply_markup=keyboard)
-            else:
-                bot.send_photo(CHAT_ID, p)
-        os.remove(f)
-    except ImportError:
-        bot.send_message(CHAT_ID, "❌ Screenshot library missing.")
-    except Exception as e:
-        # Jika DISPLAY belum siap, kirim pesan teks saja
-        if caption: bot.send_message(CHAT_ID, caption, reply_markup=keyboard)
 
 if __name__ == "__main__":
     poll_cloudflare()
