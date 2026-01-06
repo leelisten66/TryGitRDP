@@ -33,11 +33,18 @@ jobs:
       - name: 📦 Install Libs
         run: pip install pyTelegramBotAPI psutil pyautogui pillow requests
 
-      - name: 🖥️ Set Resolution (1080p)
+      - name: 🖥️ Force Resolution 1080p
         run: |
+          # Set Registry untuk resolusi virtual
+          New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\Configuration\NOEDID_8086_1916_00000000_00020000_1010100^9A352125134768393521245781192131\00" -Name "PrimSurfSize.cx" -Value 1920 -PropertyType DWORD -Force
+          New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\Configuration\NOEDID_8086_1916_00000000_00020000_1010100^9A352125134768393521245781192131\00" -Name "PrimSurfSize.cy" -Value 1080 -PropertyType DWORD -Force
+          
+          # Generic fallback key
           Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\Configuration\*' -Name "PrimSurfSize.cx" -Value 1920 -Force
           Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\Configuration\*' -Name "PrimSurfSize.cy" -Value 1080 -Force
           Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\Configuration\*' -Name "Stride" -Value 7680 -Force
+          
+          Write-Host "Resolution Registry Updated."
 
       - name: 📥 Install CRD
         run: |
