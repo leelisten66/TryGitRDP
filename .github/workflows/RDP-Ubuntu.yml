@@ -30,7 +30,7 @@ jobs:
           python-version: '3.10'
 
       - name: 📦 Install Libs
-        run: pip install pyTelegramBotAPI psutil pyautogui pillow requests
+        run: pip install pyTelegramBotAPI psutil requests
 
       - name: 🐧 Install XFCE Desktop & CRD
         run: |
