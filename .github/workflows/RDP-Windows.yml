@@ -1,0 +1,55 @@
+name: RDP-Windows-Public
+
+on: 
+  workflow_dispatch:
+    inputs:
+      dynamic_chat_id:
+        required: true
+      dynamic_token:
+        required: true
+      worker_url:
+        required: true
+      language:
+        required: true
+        default: 'en'
+
+jobs:
+  rdp-win:
+    runs-on: windows-latest
+    env:
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: 🔒 Masking Secrets
+        run: echo "::add-mask::${{ github.event.inputs.dynamic_token }}"
+        shell: bash
+
+      - uses: actions/checkout@v3
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 📦 Install Libs
+        run: pip install pyTelegramBotAPI psutil pyautogui pillow requests
+
+      - name: 🖥️ Set Resolution (1080p)
+        run: |
+          Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\Configuration\*' -Name "PrimSurfSize.cx" -Value 1920 -Force
+          Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\Configuration\*' -Name "PrimSurfSize.cy" -Value 1080 -Force
+          Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\Configuration\*' -Name "Stride" -Value 7680 -Force
+
+      - name: 📥 Install CRD
+        run: |
+          $URL = "https://dl.google.com/edgedl/chrome-remote-desktop/chromeremotedesktophost.msi"
+          Invoke-WebRequest $URL -OutFile "crd.msi"
+          Start-Process msiexec.exe -Wait -ArgumentList "/i crd.msi /qn"
+
+      - name: 🤖 Run Controller
+        env:
+          TG_TOKEN: ${{ github.event.inputs.dynamic_token }}
+          TG_CHATID: ${{ github.event.inputs.dynamic_chat_id }}
+          WORKER_URL: ${{ github.event.inputs.worker_url }}
+          USER_LANG: ${{ github.event.inputs.language }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: python bot_master.py
