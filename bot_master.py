@@ -9,8 +9,7 @@ import sys
 import requests 
 import platform
 import socket
-
-# NO PYAUTOGUI / NO SCREENSHOT
+import re # Tambahan untuk regex replace nama CRD
 
 try: sys.stdout.reconfigure(encoding='utf-8')
 except: pass
@@ -23,12 +22,15 @@ USER_LANG = os.getenv('USER_LANG', 'en').lower()
 SYSTEM_OS = platform.system()
 RUN_ID = os.getenv('GITHUB_RUN_ID') 
 
+# NAMA KOMPUTER YANG ANDA MINTA
+CRD_NAME = "TryGitRDP - MegaDigital"
+
 bot = telebot.TeleBot(TOKEN)
 
 TEXTS = {
     'en': {
         'start': f"👋 **{SYSTEM_OS} RDP READY!**\n\nPaste **CRD Command** now.\n(From: remotedesktop.google.com/headless)",
-        'cmd_received': "✅ Command OK.\nInput **PIN (6 Digits)**:",
+        'cmd_received': "✅ Command OK. Name set to **" + CRD_NAME + "**\nInput **PIN (6 Digits)**:",
         'pin_ok': "✅ PIN Saved.\n👉 **Select Duration (Hours):**",
         'starting': "🚀 **Starting RDP...**\nPlease wait...",
         'active_text': "🖥️ **RDP ACTIVE!**\n\n📍 **Location:** {country} ({ip})\n⚙️ **Specs:** {cpu} Cores / {ram}GB RAM\n💻 **OS:** {os}\n\nLogin via Chrome Remote Desktop app now.",
@@ -38,7 +40,7 @@ TEXTS = {
     },
     'id': {
         'start': f"👋 **{SYSTEM_OS} RDP SIAP!**\n\nPaste **Command CRD** sekarang.\n(Dari: remotedesktop.google.com/headless)",
-        'cmd_received': "✅ Command Diterima.\nMasukkan **PIN (6 Angka)**:",
+        'cmd_received': "✅ Command Diterima. Nama set ke **" + CRD_NAME + "**\nMasukkan **PIN (6 Angka)**:",
         'pin_ok': "✅ PIN Disimpan.\n👉 **Pilih Durasi (Jam):**",
         'starting': "🚀 **Menyalakan RDP...**\nMohon tunggu...",
         'active_text': "🖥️ **RDP AKTIF!**\n\n📍 **Lokasi:** {country} ({ip})\n⚙️ **Spek:** {cpu} Core / {ram}GB RAM\n💻 **OS:** {os}\n\nSilakan Login di aplikasi CRD sekarang.",
@@ -51,7 +53,7 @@ def t(key): return TEXTS.get(USER_LANG, TEXTS['en']).get(key, key)
 
 state = {"crd_cmd": None, "pin": None, "duration": 0, "start_time": None, "active": True}
 
-# --- MENU CONTROL (NO SCREENSHOT) ---
+# --- MENU CONTROL ---
 def get_control_menu():
     mk = InlineKeyboardMarkup(row_width=2)
     mk.add(
@@ -73,7 +75,7 @@ def get_server_details():
     except:
         return "Unknown", "Unknown", "Unknown", "Unknown", "Unknown"
 
-# --- POLLING ---
+# --- NETWORK CALLS ---
 def register_session():
     try:
         if RUN_ID and WORKER_URL:
@@ -81,14 +83,19 @@ def register_session():
             requests.post(f"{WORKER_URL}/register-session", json=payload, timeout=10)
     except: pass
 
+# FUNGSI BARU: Hapus Sesi di Worker sebelum Shutdown
+def stop_session_in_worker():
+    try:
+        if WORKER_URL:
+            payload = {"chat_id": CHAT_ID, "secret": TOKEN}
+            requests.post(f"{WORKER_URL}/end-session", json=payload, timeout=5)
+    except: pass
+
 def poll_cloudflare():
     register_session()
     print("Bot Started. Sending Greeting...")
-    # KIRIM PESAN PERTAMA: MINTA CRD
-    try:
-        bot.send_message(CHAT_ID, t('start')) 
-    except Exception as e:
-        print(f"Send Start Error: {e}")
+    try: bot.send_message(CHAT_ID, t('start')) 
+    except: pass
 
     while state["active"]:
         try:
@@ -117,7 +124,19 @@ def process_text(text):
 
     if state["crd_cmd"] is None:
         if "--code=" in text:
-            state["crd_cmd"] = text
+            # INJEKSI NAMA KOMPUTER DI SINI
+            final_cmd = text
+            # Regex replace jika --name sudah ada
+            if re.search(r'--name="[^"]+"', final_cmd):
+                final_cmd = re.sub(r'--name="[^"]+"', f'--name="{CRD_NAME}"', final_cmd)
+            # Regex replace jika --name tanpa kutip (jarang, tapi jaga-jaga)
+            elif re.search(r'--name=[^\s]+', final_cmd):
+                final_cmd = re.sub(r'--name=[^\s]+', f'--name="{CRD_NAME}"', final_cmd)
+            else:
+                # Append jika belum ada
+                final_cmd += f' --name="{CRD_NAME}"'
+
+            state["crd_cmd"] = final_cmd
             bot.send_message(CHAT_ID, t('cmd_received'))
         else:
             bot.send_message(CHAT_ID, "❌ Format CRD Salah (Pastikan ada --code).")
@@ -160,9 +179,14 @@ def process_callback(data):
         bot.send_message(CHAT_ID, msg, reply_markup=get_control_menu())
     elif data == "kill": 
         bot.send_message(CHAT_ID, "💀 Shutdown...", reply_markup=None)
-        state["active"] = False
-        if SYSTEM_OS == "Windows": os.system("shutdown /s /t 0")
-        else: os.system("sudo shutdown now")
+        perform_shutdown()
+
+def perform_shutdown():
+    state["active"] = False
+    stop_session_in_worker() # LAPOR KE WORKER SEBELUM MATI
+    time.sleep(2)
+    if SYSTEM_OS == "Windows": os.system("shutdown /s /t 0")
+    else: os.system("sudo shutdown now")
 
 def run_rdp_process():
     try:
@@ -192,9 +216,7 @@ def monitor_loop():
         elapsed = (time.time() - state["start_time"]) / 60
         if (state["duration"] - elapsed) <= 0:
             bot.send_message(CHAT_ID, t('timeout'))
-            state["active"] = False
-            if SYSTEM_OS == "Windows": os.system("shutdown /s /t 0")
-            else: os.system("sudo shutdown now")
+            perform_shutdown()
             break
         time.sleep(30)
 
